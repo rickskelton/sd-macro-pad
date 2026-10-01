@@ -76,10 +76,10 @@ private struct HeaderBar: View {
             if model.loading { ProgressView().controlSize(.small) }
             notices
             Button { openWindow(id: "tools") } label: { Label("Tools", systemImage: "wrench.and.screwdriver") }
-                .help("Diagnostics, key test, console and firmware")
+                .help("Diagnostics, key test, console, firmware")
             Button { model.reload() } label: { Label("Reload", systemImage: "arrow.clockwise") }
                 .disabled(model.pad == nil)
-                .help("Read the settings from the pad again")
+                .help("Read settings from the pad")
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 11)
@@ -90,12 +90,12 @@ private struct HeaderBar: View {
         if model.bootloaderPresent {
             Label("A pad is in bootloader mode", systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .help("Replug it without holding any keys to return to normal")
+                .help("Replug without holding keys")
         }
         if !model.legacyPads.isEmpty {
             Label("\(model.legacyPads.count) pad needs a firmware update", systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .help("\(model.legacyPads.joined(separator: ", ")): update to firmware v105 from Tools ▸ Firmware to unlock every setting.")
+                .help("\(model.legacyPads.joined(separator: ", ")): update to v105 in Tools ▸ Firmware.")
         }
     }
 }
@@ -122,7 +122,7 @@ private struct ProfileChips: View {
                 .accessibilityAddTraits(index == selected ? .isSelected : [])
             }
         }
-        .help("Each profile stores its own key and dial assignments. The pad blinks key 1 to show the profile number.")
+        .help("Each profile has its own assignments. The pad blinks key 1 to show the number.")
     }
 }
 
@@ -142,17 +142,17 @@ private struct EmptyState: View {
             .onAppear { withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) { pulse = true } }
             if model.bootloaderPresent {
                 Text("The pad is in bootloader mode").font(.system(size: 22, weight: .semibold, design: .rounded))
-                Text("Unplug it and plug it back in without holding any keys, or open the firmware tools to back it up or flash it.")
+                Text("Replug it without holding keys, or open the firmware tools.")
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 Button("Open Firmware Tools") { openWindow(id: "tools") }.controlSize(.large)
             } else if !model.legacyPads.isEmpty {
                 Text("Ready for a firmware update").font(.system(size: 22, weight: .semibold, design: .rounded))
-                Text("\(model.legacyPads.joined(separator: ", ")) is on its factory firmware.\nUpdate it to v105 from Tools ▸ Firmware to unlock remapping, lighting and macros.")
+                Text("\(model.legacyPads.joined(separator: ", ")) is on factory firmware.\nUpdate to v105 in Tools ▸ Firmware.")
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 Button("Open Firmware Tools") { openWindow(id: "tools") }.controlSize(.large)
             } else {
                 Text("Plug in a pad").font(.system(size: 22, weight: .semibold, design: .rounded))
-                Text("Connect a 6-key or 16-key SIDE-KEYBOARD macro pad and it appears here.")
+                Text("Connect a 6-key or 16-key SIDE-KEYBOARD pad.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -163,7 +163,6 @@ private struct EmptyState: View {
 
 // MARK: - Pad picture
 
-/// The pad, drawn with its LEDs doing what the lighting settings say.
 private struct PadStage: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -284,7 +283,6 @@ private struct KnobView: View {
     @EnvironmentObject private var model: AppModel
     let knob: Int
 
-    /// Alternating light and dark slivers that read as a knurled metal edge.
     private static let knurl: AngularGradient = {
         var stops: [Gradient.Stop] = []
         let count = 48
@@ -414,13 +412,13 @@ private struct LightingPanel: View {
                     }
                 }
                 if effect == .tide {
-                    Text("Tide always runs its own rainbow.").foregroundStyle(.secondary).font(.callout)
+                    Text("Tide runs its own rainbow.").foregroundStyle(.secondary).font(.callout)
                 }
                 if effect == .perKey {
-                    Text("Select a key above, then set its colour in the panel on the right.").foregroundStyle(.secondary).font(.callout)
+                    Text("Select a key, then set its colour on the right.").foregroundStyle(.secondary).font(.callout)
                 }
                 if effect == .lightOnPress {
-                    Text("Keys stay dark and light up when pressed.").foregroundStyle(.secondary).font(.callout)
+                    Text("Keys light when pressed.").foregroundStyle(.secondary).font(.callout)
                 }
                 if effect != .off {
                     HStack(spacing: 12) {

@@ -2,7 +2,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 import SDPadKit
 
-/// Diagnostics, key test, raw console and firmware tools, in their own window.
 struct ToolsView: View {
     var body: some View {
         TabView {
@@ -43,7 +42,7 @@ private struct DiagnosticsTab: View {
                     NSPasteboard.general.setString(report, forType: .string)
                 }
                 Spacer()
-                Text("Read-only: the pad’s settings stay exactly as they are.").foregroundStyle(.secondary).font(.callout)
+                Text("Read only.").foregroundStyle(.secondary).font(.callout)
             }
         }
         .onAppear(perform: refresh)
@@ -57,7 +56,6 @@ private struct DiagnosticsTab: View {
 }
 
 extension AppModel {
-    /// A plain-text dump of everything the app can read, for troubleshooting.
     func diagnostics(_ completion: @escaping (String) -> Void) {
         let pads = self.pads, legacy = legacyPads, bootloader = bootloaderPresent
         DispatchQueue.global(qos: .userInitiated).async {
@@ -65,7 +63,7 @@ extension AppModel {
             if pads.isEmpty { lines.append("No configurable pad connected.") }
             for pad in pads {
                 lines.append("\(pad.model.name)  \"\(pad.productName)\"  " + String(format: "%04X:%04X  location 0x%08X", pad.vendorID, pad.productID, pad.locationID))
-                if !pad.isKnownModel { lines.append("  Shown with the generic 16-key, 3-dial layout.") }
+                if !pad.isKnownModel { lines.append("  Generic 16-key, 3-dial layout.") }
                 do {
                     let info = try pad.info()
                     lines.append("  Firmware v\(info.firmware), protocol \(info.protocolVersion), profile \(info.profile + 1) of \(info.profileCount), layers \(info.layerCount)")
@@ -86,7 +84,7 @@ extension AppModel {
                 }
                 lines.append("")
             }
-            for name in legacy { lines.append("\(name): factory firmware. Update it to v105 from the Firmware tab to unlock every setting.") }
+            for name in legacy { lines.append("\(name): factory firmware. Update to v105 in the Firmware tab.") }
             if bootloader { lines.append("A pad is in bootloader mode (USB 5566:0009).") }
             let text = lines.joined(separator: "\n")
             DispatchQueue.main.async { completion(text) }
@@ -103,7 +101,7 @@ private struct KeyTestTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Press keys and turn dials while this window is in front. Each keystroke and media key is matched against what the selected pad is set to send.")
+            Text("Press keys and turn dials with this window in front. Each keystroke and media key is matched to the selected pad’s settings.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             List(Array(events.enumerated()), id: \.offset) { _, line in
@@ -112,7 +110,7 @@ private struct KeyTestTab: View {
             HStack {
                 Button("Clear") { events.removeAll() }
                 Spacer()
-                Text("Volume and other media keys still act on the Mac while testing.").foregroundStyle(.secondary).font(.callout)
+                Text("Media keys still act on the Mac.").foregroundStyle(.secondary).font(.callout)
             }
         }
         .onAppear(perform: start)
@@ -132,7 +130,7 @@ private struct KeyTestTab: View {
                 log(KeyEntry.key(usage, modifiers))
                 return nil
             }
-            // Media keys arrive as system-defined events, subtype 8; 0x0A in the flags byte is key down.
+            // media keys: systemDefined subtype 8, 0x0A = key down
             if event.subtype.rawValue == 8, (event.data1 & 0xFF00) >> 8 == 0x0A {
                 let usages: [Int: UInt16] = [0: 0xE9, 1: 0xEA, 7: 0xE2, 16: 0xCD, 17: 0xB5, 18: 0xB6, 19: 0xB5, 20: 0xB6]
                 if let usage = usages[(event.data1 & 0xFFFF0000) >> 16] { log(.consumer(usage)) }
@@ -162,7 +160,7 @@ private struct KeyTestTab: View {
         if events.count > 200 { events.removeLast() }
     }
 
-    /// Folds right-hand modifiers onto the left ones, as key events do not tell them apart here.
+    // key events don't say left or right modifier
     private func normalised(_ entry: KeyEntry) -> KeyEntry {
         guard entry.kind == .key else { return entry }
         var modifiers: Modifiers = []
@@ -183,7 +181,7 @@ private struct ConsoleTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Sends one configuration frame to the selected pad: 06 followed by the hex bytes below. The command list is in docs/TECHNICAL_REFERENCE.md. Erase and factory-reset commands (0F) are kept out of the console for safety.")
+            Text("Sends 06 plus the hex bytes below to the selected pad. Commands are in docs/TECHNICAL_REFERENCE.md. 0F (erase, factory reset) is left out for safety.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             HStack {
@@ -205,7 +203,7 @@ private struct ConsoleTab: View {
                 Button("Clear") { log.removeAll() }
                 Spacer()
                 Button("Reload app from pad") { model.reload() }
-                    .help("Use after changing settings from the console")
+                    .help("After changing settings from the console")
             }
         }
     }
@@ -219,7 +217,7 @@ private struct ConsoleTab: View {
             return
         }
         guard bytes[0] != 0x0F else {
-            log.insert("•  0F commands erase settings, so the console leaves them out", at: 0)
+            log.insert("•  0F erases settings; left out of the console", at: 0)
             return
         }
         DispatchQueue.global(qos: .userInitiated).async {
@@ -235,7 +233,6 @@ private struct ConsoleTab: View {
 
 // MARK: - Firmware
 
-/// Runs bootloader operations off the main thread and publishes their progress.
 final class FirmwareModel: ObservableObject {
     @Published var status = ""
     @Published var progress: Double?
@@ -254,7 +251,7 @@ final class FirmwareModel: ObservableObject {
     }
 
     func backUp(to url: URL) {
-        publish("Reading the pad’s flash…", busy: true)
+        publish("Reading flash…", busy: true)
         queue.async {
             do {
                 let flash = try Bootloader().read()
@@ -268,7 +265,7 @@ final class FirmwareModel: ObservableObject {
     }
 
     func flash(from url: URL) {
-        publish("Checking the image and the pad…", busy: true)
+        publish("Checking…", busy: true)
         queue.async {
             do {
                 let image = [UInt8](try Data(contentsOf: url))
@@ -286,11 +283,11 @@ final class FirmwareModel: ObservableObject {
                 let have = Bootloader.deviceID(inImage: current), want = Bootloader.deviceID(inImage: image)
                 var concern: String?
                 if want == nil {
-                    concern = "This file has no USB device descriptor where firmware for these pads has one. It may not be a firmware image for them, and flashing it will probably leave the pad dark until a good image is flashed."
+                    concern = "No USB device descriptor found where pad firmware has one. This may not be a firmware image, and flashing it will probably leave the pad dark until a good image is flashed."
                 } else if have == nil {
-                    concern = "The pad’s current firmware is one the app has yet to see, so please confirm this image is for the same model."
+                    concern = "The pad’s current firmware is new to the app. Confirm this image is for the same model."
                 } else if let have, let want, have != want {
-                    concern = String(format: "The pad currently runs firmware for %04X:%04X, but this image is for %04X:%04X (%@). Firmware for another model will not drive this pad’s keys and lights correctly.",
+                    concern = String(format: "The pad runs firmware for %04X:%04X; this image is for %04X:%04X (%@). Firmware for another model will not drive this pad’s keys and lights correctly.",
                                      have.vendorID, have.productID, want.vendorID, want.productID,
                                      PadModel.lookup(vendorID: want.vendorID, productID: want.productID)?.name ?? "another model")
                 }
@@ -314,7 +311,7 @@ final class FirmwareModel: ObservableObject {
         guard let pending else { return }
         self.pending = nil
         guard proceed else {
-            publish("Cancelled. Nothing was written.", busy: false)
+            publish("Cancelled.", busy: false)
             return
         }
         publish("Writing…", busy: true, progress: 0)
@@ -329,7 +326,7 @@ final class FirmwareModel: ObservableObject {
         try bootloader.writeApplication(image: image) { fraction in
             self.publish("Writing…", busy: true, progress: fraction)
         }
-        publish("Written and verified. Unplug the pad and plug it back in without holding any keys.", busy: false)
+        publish("Written and verified. Replug the pad without holding keys.", busy: false)
     }
 }
 
@@ -355,7 +352,7 @@ private struct FirmwareTab: View {
                 .padding(6)
             }
             GroupBox("How to") {
-                Text("1. Unplug the pad. Hold its top-left and top-right keys, plug it in, then let go. Its lights stay off.\n2. Back up what is on it.\n3. Flash an image made for that model: 32 KB .bin files such as 6key_v105.bin or 16key_v105.bin.\n4. Unplug it and plug it back in without holding keys.\n\nThe bootloader itself is never overwritten, so a pad that stays dark after a flash can be put back into bootloader mode and flashed again. Keep only one pad in bootloader mode at a time.")
+                Text("1. Unplug the pad. Hold the top-left and top-right keys, plug it in, let go. Lights stay off.\n2. Back up.\n3. Flash the image for that model: a 32 KB .bin such as 6key_v105.bin or 16key_v105.bin.\n4. Replug without holding keys.\n\nThe bootloader is never overwritten: a pad that stays dark can be flashed again. Keep one pad in bootloader mode at a time.")
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(6)
@@ -387,7 +384,7 @@ private struct FirmwareTab: View {
     private func flash() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "bin") ?? .data]
-        panel.message = "Choose a 32 KB firmware image for the pad that is in bootloader mode"
+        panel.message = "Choose a 32 KB firmware image for the pad in bootloader mode"
         if panel.runModal() == .OK, let url = panel.url { firmware.flash(from: url) }
     }
 }

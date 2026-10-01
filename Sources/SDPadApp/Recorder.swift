@@ -1,7 +1,6 @@
 import SwiftUI
 import SDPadKit
 
-/// A button that captures the next key press, with its modifiers, as a keystroke entry.
 struct ShortcutRecorder: View {
     var title = "Record shortcut"
     var onRecord: (KeyEntry) -> Void

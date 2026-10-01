@@ -1,8 +1,6 @@
 import SwiftUI
 import SDPadKit
 
-/// What the window shows: the connected pads and the selected pad's settings.
-/// Published state is only touched on the main thread; USB I/O runs on `io`.
 final class AppModel: ObservableObject {
     @Published var pads: [Pad] = []
     @Published var legacyPads: [String] = []
@@ -16,7 +14,6 @@ final class AppModel: ObservableObject {
     @Published var selection: Slot = .key(0)
     @Published var message: String?
     @Published var loading = false
-    /// Bumped whenever settings are re-read from a pad, so views holding edit state start afresh.
     @Published var revision = 0
     @Published var editingMacros = false
 
@@ -86,8 +83,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Runs `work` on the I/O queue after a short pause, replacing any queued write for the same
-    /// setting. Dragging a slider or colour then costs one flash write, not dozens.
+    // debounce: one flash write per drag instead of dozens
     private func write(_ key: String, _ work: @escaping () throws -> Void) {
         pending[key]?.cancel()
         let item = DispatchWorkItem { [weak self] in
@@ -132,8 +128,7 @@ final class AppModel: ObservableObject {
         io.async {
             do {
                 try pad.selectProfile(profile)
-                // The pad blinks key 1 to show the profile number and can leave that LED dark;
-                // re-sending the lighting restarts it once the blinking is over.
+                // pad blinks key 1 for the profile number and can leave it dark, so resend lighting after
                 Thread.sleep(forTimeInterval: 0.6 + 0.5 * Double(profile + 1))
                 try pad.writeLight(light)
             } catch { self.report(error) }
@@ -150,10 +145,7 @@ final class AppModel: ObservableObject {
     }
 }
 
-/// A colour well that owns its colour while the user edits it.
-///
-/// Binding a `ColorPicker` straight to the pad's 8-bit values feeds every rounded value back
-/// into the picker, which makes it jump under the pointer. Give it a new `.id` to load a new colour.
+// holds its own colour while editing; binding straight to the 8-bit values makes the picker jump
 struct PadColourPicker: View {
     let title: String
     var showsLabel = true

@@ -1,7 +1,6 @@
 import SwiftUI
 import SDPadKit
 
-/// Edits the pad's 16 stored macros. Nothing reaches the pad until Save.
 struct MacroEditor: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -12,7 +11,6 @@ struct MacroEditor: View {
     @State private var delay = 10
 
     private var stepCount: Int { macros.reduce(0) { $0 + $1.count } }
-    /// 4096-byte table minus the 64-byte index, four bytes per step.
     private let capacity = (Macro.tableSize - 64) / 4
 
     var body: some View {
@@ -54,7 +52,7 @@ struct MacroEditor: View {
     private var steps: some View {
         VStack(alignment: .leading, spacing: 10) {
             if macros[selected].isEmpty {
-                Text("Add text or a shortcut below to build Macro \(selected + 1).")
+                Text("Add text or a shortcut below.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -80,11 +78,11 @@ struct MacroEditor: View {
                 ShortcutRecorder(title: "Add shortcut…") { entry in
                     macros[selected] += Macro.shortcut(entry, delay: UInt16(delay))
                 }
-                Stepper("Delay between steps: \(delay) ms", value: $delay, in: 1...1000, step: 5)
+                Stepper("Step delay: \(delay) ms", value: $delay, in: 1...1000, step: 5)
                 Spacer()
                 Button("Clear macro") { macros[selected] = [] }.disabled(macros[selected].isEmpty)
             }
-            Text("Text is stored as US-layout key positions. With another layout on the Mac, check symbols such as @ and # after saving.")
+            Text("Stored as US-layout key positions. On other layouts, check symbols such as @ and #.")
                 .font(.callout).foregroundStyle(.secondary)
         }
         .padding(12)

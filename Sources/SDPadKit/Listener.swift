@@ -1,8 +1,6 @@
 import Foundation
 import IOKit.hid
 
-/// Prints or delivers every input report a pad sends: key presses, dial turns, media keys.
-/// Opening a pad's keyboard interface needs the Input Monitoring permission on macOS.
 public final class PadListener {
     private let devices: OpenedDevices
     private var stopped = false
@@ -11,7 +9,6 @@ public final class PadListener {
         devices = OpenedDevices(matching: PadMonitor.vendorIDs.map { [kIOHIDVendorIDKey: $0] })
     }
 
-    /// Blocks for `seconds`, calling `handler` with (productID, usagePage, report bytes).
     public func run(for seconds: TimeInterval, handler: (Int, Int, [UInt8]) -> Void) {
         let end = Date().addingTimeInterval(seconds)
         while Date() < end {

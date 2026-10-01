@@ -1,6 +1,5 @@
 import Foundation
 
-/// A pad model this library knows the physical layout of.
 public struct PadModel: Equatable, Hashable {
     public let name: String
     public let vendorID: Int
@@ -10,12 +9,11 @@ public struct PadModel: Equatable, Hashable {
     public let knobCount: Int
 
     public var keyCount: Int { columns * rows }
-    /// Entries in the key table that matter for this model: 16 button slots, then 3 per knob.
     public var entryCount: Int { PadModel.firstKnobIndex + 3 * knobCount }
 
+    // keys are 0-15, then three slots per knob: press, cw, ccw
     public static let firstKnobIndex = 16
 
-    /// Key table index of the button at a grid position (row-major, top-left is 0).
     public func keyIndex(row: Int, column: Int) -> Int { row * columns + column }
 
     public func knobIndex(_ knob: Int, _ part: KnobPart) -> Int {
@@ -32,19 +30,16 @@ public struct PadModel: Equatable, Hashable {
         known.first { $0.vendorID == vendorID && $0.productID == productID }
     }
 
-    /// Fallback for an SD pad with a config interface but no known layout: every slot is exposed.
     public static func generic(vendorID: Int, productID: Int) -> PadModel {
         PadModel(name: String(format: "Unknown SD pad %04X:%04X", vendorID, productID),
                  vendorID: vendorID, productID: productID, columns: 4, rows: 4, knobCount: 3)
     }
 }
 
-/// The three key table slots a knob owns, in table order.
 public enum KnobPart: Int, CaseIterable {
     case press = 0, clockwise = 1, counterClockwise = 2
 }
 
-/// A control on the pad, addressed the way people think of it.
 public enum Slot: Hashable {
     case key(Int)
     case knob(Int, KnobPart)
@@ -88,7 +83,6 @@ public struct Modifiers: OptionSet, Hashable {
     }
 }
 
-/// One 4-byte entry of the key table: `[type, code1, code2, code3]`.
 public struct KeyEntry: Equatable, Hashable {
     public var type: UInt8
     public var code1: UInt8
@@ -119,23 +113,20 @@ public struct KeyEntry: Equatable, Hashable {
 
     public static let disabled = KeyEntry(type: Kind.disabled.rawValue)
 
-    /// A keystroke: HID modifier mask plus one keyboard usage (0 for a bare modifier).
     public static func key(_ usage: UInt8, _ modifiers: Modifiers = []) -> KeyEntry {
         KeyEntry(type: Kind.key.rawValue, code1: modifiers.rawValue, code2: usage)
     }
 
-    /// A consumer-page usage such as volume or play/pause.
     public static func consumer(_ usage: UInt16) -> KeyEntry {
         KeyEntry(type: Kind.consumer.rawValue, code1: UInt8(usage & 0xFF), code2: UInt8(usage >> 8))
     }
 
-    /// Mouse buttons (bit 0 left, 1 right, 2 middle, 3 back, 4 forward) and/or wheel steps.
+    // buttons: 1 left, 2 right, 4 middle, 8 back, 16 forward
     public static func mouse(buttons: UInt8 = 0, wheel: Int8 = 0) -> KeyEntry {
         KeyEntry(type: Kind.mouse.rawValue, code1: buttons, code3: UInt8(bitPattern: wheel))
     }
 
-    /// Runs a stored macro. `mode`: 0 play `count` times, 1 loop while held,
-    /// 2 loop until any key, 3 loop until this key is pressed again.
+    // mode: 0 play count times, 1 while held, 2 until any key, 3 until pressed again
     public static func macro(_ index: Int, count: Int = 1, mode: Int = 0) -> KeyEntry {
         KeyEntry(type: Kind.macro.rawValue, code1: UInt8(index), code2: UInt8(count), code3: UInt8(mode))
     }
@@ -144,7 +135,6 @@ public struct KeyEntry: Equatable, Hashable {
     public var consumerUsage: UInt16 { UInt16(code1) | UInt16(code2) << 8 }
     public var wheel: Int8 { Int8(bitPattern: code3) }
 
-    /// Short human-readable description, for labels.
     public var summary: String {
         switch kind {
         case .disabled: return "None"
@@ -188,7 +178,6 @@ public struct RGB: Equatable, Hashable {
 
     public var hex: String { String(format: "#%02X%02X%02X", r, g, b) }
 
-    /// Hue, saturation and value on the pad's 0–255 scale.
     public var hsv: (h: UInt8, s: UInt8, v: UInt8) {
         let rf = Double(r) / 255, gf = Double(g) / 255, bf = Double(b) / 255
         let mx = max(rf, gf, bf), mn = min(rf, gf, bf), d = mx - mn
@@ -237,20 +226,17 @@ public enum LightEffect: UInt8, CaseIterable, Identifiable {
     }
 
     public var hasSpeed: Bool { self == .breathing || self == .lightOnPress || self == .tide }
-    /// Tide always runs the built-in palette and ignores the colour setting.
+    // tide ignores the colour setting
     public var hasColour: Bool { self == .solid || self == .breathing || self == .lightOnPress }
 }
 
-/// The backlight block, as read with `06 0A` and written with `06 0B`.
 public struct LightConfig: Equatable {
     public var type: UInt8 = 1
     public var mode: UInt8 = LightEffect.tide.rawValue
-    /// 0–4.
+    // brightness and speed are 0-4
     public var brightness: UInt8 = 4
-    /// 0–4.
     public var speed: UInt8 = 2
     public var direction: UInt8 = 0
-    /// false cycles the built-in palette; true uses `hue`/`saturation`/`value`.
     public var singleColour: Bool = false
     public var hue: UInt8 = 0
     public var saturation: UInt8 = 255

@@ -19,8 +19,6 @@ public enum PadError: Error, CustomStringConvertible {
     }
 }
 
-/// All IOKit HID callbacks are delivered on this one background thread, so callers on any
-/// other thread can block waiting for a reply.
 final class HIDThread {
     static let shared = HIDThread()
     private var runLoop: CFRunLoop!
@@ -29,7 +27,7 @@ final class HIDThread {
         let ready = DispatchSemaphore(value: 0)
         let thread = Thread { [unowned self] in
             self.runLoop = CFRunLoopGetCurrent()
-            // A run loop with no sources exits at once; this timer keeps it alive.
+            // a run loop with no sources exits straight away
             let keepAlive = Timer(timeInterval: 3600, repeats: true) { _ in }
             RunLoop.current.add(keepAlive, forMode: .default)
             ready.signal()
@@ -59,7 +57,6 @@ final class HIDThread {
     }
 }
 
-/// Input reports of one opened HID interface, queued for a blocking reader.
 final class ReportInbox {
     private let condition = NSCondition()
     private var reports: [[UInt8]] = []
@@ -81,8 +78,6 @@ final class ReportInbox {
     }
 }
 
-/// An IOHIDManager whose matched devices are opened and whose input reports are routed
-/// into one inbox per device.
 final class OpenedDevices {
     let manager: IOHIDManager
     private let lock = NSLock()
@@ -122,8 +117,7 @@ final class OpenedDevices {
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size)
         let inbox = ReportInbox()
         lock.lock(); inboxes[id] = inbox; buffers[id] = buffer; lock.unlock()
-        // The manager opens devices that exist when it is opened; one that arrives later, or
-        // that the manager failed to open, is opened here.
+        // devices that turn up after the manager was opened need opening too
         IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeNone))
         IOHIDDeviceRegisterInputReportCallback(device, buffer, size, { context, _, _, _, _, report, length in
             let inbox = Unmanaged<ReportInbox>.fromOpaque(context!).takeUnretainedValue()
@@ -133,7 +127,7 @@ final class OpenedDevices {
     }
 
     private func detach(_ device: IOHIDDevice) {
-        // The inbox and buffer are left allocated: a late callback must not touch freed memory.
+        // leave the buffer allocated, a late callback could still land
         lock.lock(); inboxes[ObjectIdentifier(device)] = nil; lock.unlock()
         onChange?()
     }

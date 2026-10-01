@@ -1,6 +1,5 @@
 import Foundation
 
-/// One step of a stored macro: a key, mouse button or wheel event, after a delay.
 public struct MacroAction: Equatable, Hashable, Identifiable {
     public enum Kind: UInt8 {
         case mouseButton = 3, key = 2, scrollVertical = 4, scrollHorizontal = 5
@@ -8,11 +7,8 @@ public struct MacroAction: Equatable, Hashable, Identifiable {
 
     public let id = UUID()
     public var kind: Kind
-    /// true for press, false for release. Wheel steps are stored as releases, as the vendor tool does.
     public var down: Bool
-    /// Keyboard usage, mouse button mask, or wheel delta (1 / 0xFF).
     public var code: UInt8
-    /// Milliseconds before this step runs.
     public var delay: UInt16
 
     public init(kind: Kind = .key, down: Bool, code: UInt8, delay: UInt16 = 10) {
@@ -37,11 +33,10 @@ public struct MacroAction: Equatable, Hashable, Identifiable {
     }
 }
 
-/// The pad's macro table: 4096 bytes, shared by every profile.
-///
-/// Bytes 0–63 hold a little-endian start offset per macro (`FF FF` = empty; the vendor tool
-/// exposes 16 macros). Actions follow from offset 64, four bytes each: delay low, delay high,
-/// flags, code. Flags: bits 0–2 action kind, bit 6 press, bit 7 last action of the macro.
+// Macro table, 4096 bytes, shared by all profiles.
+// 0-63: little-endian start offset per macro, FF FF = empty.
+// From 64: 4 bytes per action = delay lo, delay hi, flags, code.
+// flags: bits 0-2 kind, 0x40 press, 0x80 last action.
 public enum Macro {
     public static let tableSize = 4096
     public static let slotCount = 16
@@ -86,7 +81,6 @@ public enum Macro {
         return table
     }
 
-    /// Key taps that type `text` on a US layout. Characters without a key position are skipped.
     public static func typing(_ text: String, delay: UInt16 = 10) -> [MacroAction] {
         var actions: [MacroAction] = []
         for character in text {
@@ -99,7 +93,6 @@ public enum Macro {
         return actions
     }
 
-    /// A shortcut pressed and released: modifiers down, key tap, modifiers up.
     public static func shortcut(_ entry: KeyEntry, delay: UInt16 = 10) -> [MacroAction] {
         let modifierUsages: [(Modifiers, UInt8)] = [(.control, 0xE0), (.shift, 0xE1), (.option, 0xE2), (.command, 0xE3),
                                                     (.rightControl, 0xE4), (.rightShift, 0xE5), (.rightOption, 0xE6), (.rightCommand, 0xE7)]

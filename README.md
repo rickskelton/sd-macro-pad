@@ -1,59 +1,55 @@
 # SD Macro Pad
 
-A Mac app for those cheap little RGB macro pads off Temu and AliExpress: the ones that show up
-on USB as **SDINNOVATION SIDE-KEYBOARD** and come with a leaflet pointing at download links
-that died years ago.
+A Mac app for the cheap RGB macro pads sold on Temu and AliExpress that show up on USB as
+**SDINNOVATION SIDE-KEYBOARD**.
 
-I bought two of them, a 6-key with a dial and a 16-key with three dials. Out of the box every
-key typed Ctrl+A, the lights did a rainbow I couldn't turn off, and there was no software to be
-found. So I worked out how they talk and wrote my own.
+I bought two: a 6-key with a dial and a 16-key with three dials. As delivered, every key typed
+Ctrl+A, the lights ran a rainbow I couldn't change, and the download links in the leaflet were
+dead. So I worked out how they talk and wrote my own software.
 
 ![SD Macro Pad](docs/screenshot.png)
 
 ## What it does
 
-- **Remap every key and dial.** Shortcuts (there's a recorder), media keys, mouse clicks and
-  scrolling, sleep/power, or nothing at all. Each dial has three actions: press, clockwise and
-  anticlockwise.
-- **Lighting.** Off, solid, breathing, light-on-press, the "tide" rainbow, or a colour per key.
-- **Six profiles**, each with its own key map.
-- **Macros.** Sixteen of them, stored on the pad: a line of text, or a string of shortcuts.
-- **Tools.** A diagnostics dump, a key tester, a raw command console, and firmware backup and
-  flashing.
+- Remaps every key and dial: shortcuts, media keys, mouse clicks and scrolling, sleep/power.
+  Each dial has three actions (press, clockwise, anticlockwise).
+- Lighting: off, solid, breathing, light-on-press, tide, or a colour per key.
+- Six profiles, each with its own key map.
+- Sixteen macros, stored on the pad.
+- Tools: diagnostics, key tester, raw command console, firmware backup and flashing.
 
-Everything is saved on the pad itself. Set it up once and it works on any machine, with or
-without the app running.
+Settings live on the pad. Set it up once and it works on any machine, with or without the app.
 
 ## Download
 
-Grab the latest build from [Releases](../../releases). It's signed and notarised, and needs
-macOS 13 or later.
+Latest build is on the [Releases](../../releases) page. Signed and notarised. macOS 13 or later.
 
-## Will it work with my pad?
+## Supported pads
 
 | Pad | USB ID | Status |
 |---|---|---|
-| 6 keys + 1 dial | `6D80:DC81` | Works. This is one of mine. |
-| 16 keys + 3 dials | `6D7D:DCFC` | Works. This is the other one. |
-| 3, 4, 8, 9, 10, 12 and 15-key siblings | `6D7B`–`6D83` | Same family and protocol, so probably, but I don't own them. They show up with a generic layout. |
+| 6 keys + 1 dial | `6D80:DC81` | Works. I own one. |
+| 16 keys + 3 dials | `6D7D:DCFC` | Works. I own one. |
+| 3, 4, 8, 9, 10, 12 and 15-key versions | `6D7B`–`6D83` | Same protocol. Untested. They get a generic layout. |
 
-The catch is firmware. Mine both arrived on an old factory firmware that nothing can
-configure, not even the vendor's own tools. The app spots that and tells you. The fix is to
-flash the vendor's v105 firmware, which the app can do (Tools ▸ Firmware):
+## Firmware
 
-1. Hold the top-left and top-right keys while plugging the pad in. That's bootloader mode.
-2. Back up what's on it.
+Both of mine arrived on a factory firmware that nothing can configure, including the vendor's
+own tools. The app detects this. The fix is the vendor's v105 firmware, which the app can flash
+(Tools ▸ Firmware):
+
+1. Hold the top-left and top-right keys while plugging the pad in. That is bootloader mode.
+2. Back up what is on it.
 3. Flash the v105 image for your exact model.
 4. Replug.
 
-I can't hand out the firmware images because they're the vendor's. The
-[technical reference](docs/TECHNICAL_REFERENCE.md) says where they live and gives checksums.
-The bootloader never gets overwritten, so a bad flash is recoverable; I know because I managed
-several.
+The firmware images are the vendor's, so they are not in this repo. The
+[technical reference](docs/TECHNICAL_REFERENCE.md) says where to find them and lists checksums.
+The bootloader is never overwritten, so a bad flash can be redone.
 
 ## Command line
 
-There's a terminal version too, `sdpad`, built alongside the app:
+`sdpad` is built alongside the app:
 
 ```bash
 sdpad list
@@ -65,11 +61,11 @@ sdpad colour 3 "#00ffaa"
 sdpad macro 1 text "hello"
 ```
 
-Run `sdpad` on its own for the full list.
+Run `sdpad` with no arguments for the full list.
 
 ## Using the pads in your own software
 
-The app and the CLI both sit on a small Swift library, `SDPadKit`:
+The app and the CLI share a Swift library, `SDPadKit`:
 
 ```swift
 import SDPadKit
@@ -80,33 +76,30 @@ try pad.writeKey(.knob(0, .clockwise), .consumer(0xE9))   // dial = volume up
 try pad.writeKeyColour(0, RGB(hex: "#FF0000")!)
 ```
 
-If Swift isn't your thing, [docs/TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md) has the
-whole protocol written out: every command byte, the bootloader, the macro format, and a short
-hidapi example. It also marks what I've actually tested on hardware and what I've only read
-out of the vendor's code, so you know which bits to trust.
+For other languages, [docs/TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md) has the protocol:
+command bytes, bootloader, macro format, and a hidapi example. Each item is marked as tested on
+hardware or read from the vendor's code.
 
 ## Building
 
-You need Xcode's Swift toolchain.
+Needs Xcode's Swift toolchain.
 
 ```bash
 scripts/build-app.sh
 ```
 
-That builds `SD Macro Pad.app` and `sdpad` into the project folder. It signs with a Developer
-ID certificate if you have one, and `--notarize` notarises as well.
+Builds `SD Macro Pad.app` and `sdpad` into the project folder. Signs with a Developer ID
+certificate if there is one in the keychain. `--notarize` notarises too.
 
-## Thanks
+## Credits
 
-Two open-source projects gave me a head start on the protocol:
 [Knurl](https://github.com/dozzenn/knurl) and
-[MacroPad](https://github.com/ysalitrynskyi/MacroPad). Neither supported my pads as they
-shipped, but their notes saved me a lot of guessing.
+[MacroPad](https://github.com/ysalitrynskyi/MacroPad) document the protocol for related pads.
+Their notes saved me a lot of guessing.
 
 ## Disclaimer
 
-This is my own project and has nothing to do with SDINNOVATION, SDCX or Huali. It comes with
-no warranty. Remapping and lighting use the same commands as the vendor's tool, but flashing
-firmware is always at your own risk. Back the pad up first.
+Not affiliated with SDINNOVATION, SDCX or Huali. No warranty. Flashing firmware is at your own
+risk. Back the pad up first.
 
-MIT licensed. See [LICENSE](LICENSE).
+MIT licence. See [LICENSE](LICENSE).

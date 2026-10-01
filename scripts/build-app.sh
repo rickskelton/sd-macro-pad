@@ -1,12 +1,8 @@
 #!/bin/bash
-# Builds "SD Macro Pad.app" and the sdpad command-line tool into the project folder.
-#
-#   scripts/build-app.sh              build, sign with Developer ID if a certificate is in the keychain
-#   scripts/build-app.sh --notarize   also notarise with Apple and staple the ticket
-#
-# The first "Developer ID Application" certificate in the keychain is used unless SIGN_ID is set.
-# Notarising needs a notarytool keychain profile (xcrun notarytool store-credentials <name>):
-#   NOTARY_PROFILE=<name> scripts/build-app.sh --notarize
+# Builds "SD Macro Pad.app" and sdpad into the project folder.
+#   scripts/build-app.sh
+#   NOTARY_PROFILE=<notarytool profile> scripts/build-app.sh --notarize
+# Uses the first Developer ID Application certificate in the keychain, or SIGN_ID if set.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

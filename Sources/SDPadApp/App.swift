@@ -76,17 +76,16 @@ private struct PadCommands: View {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    /// Menus SwiftUI adds that hold nothing this app uses.
     private static let unwantedMenus: Set<String> = ["File", "View", "Format"]
     private var observer: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Needed when the binary is run outside an app bundle.
+        // for running the bare binary
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         NSWindow.allowsAutomaticWindowTabbing = false
         pruneMenus()
-        // SwiftUI rebuilds the menu bar when scenes change, so prune again whenever it does.
+        // SwiftUI rebuilds the menu bar, so prune again
         observer = NotificationCenter.default.addObserver(forName: NSMenu.didAddItemNotification, object: nil, queue: .main) { [weak self] note in
             if (note.object as? NSMenu) === NSApp.mainMenu { self?.pruneMenus() }
         }

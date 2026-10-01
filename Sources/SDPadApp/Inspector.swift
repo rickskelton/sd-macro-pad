@@ -1,7 +1,6 @@
 import SwiftUI
 import SDPadKit
 
-/// The kinds of action the inspector offers.
 private enum ActionKind: String, CaseIterable, Identifiable {
     case keystroke = "Keystroke"
     case media = "Media key"
@@ -70,11 +69,11 @@ struct Inspector: View {
                 case .macro: macro
                 case .system: system
                 case .nothing:
-                    Text("This control is switched off.").foregroundStyle(.secondary)
+                    Text("Switched off.").foregroundStyle(.secondary)
                 }
 
                 if entry.kind == nil && entry.type != 0 || entry.kind == .padFunction {
-                    Text("The pad holds a custom action here: \(entry.summary). Choose an action above to replace it.")
+                    Text("Custom action on the pad: \(entry.summary). Choose an action above to replace it.")
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -84,9 +83,9 @@ struct Inspector: View {
                     PadColourPicker("Key colour", colour: model.colours[index]) { model.setColour($0, forKey: index) }
                         .id("key-\(index)-\(model.revision)")
                     if model.light.effect == .perKey {
-                        Text("Shown now: the lighting effect is Per-key colours.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text("Showing now.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     } else {
-                        Text("Key colours show when the lighting effect is Per-key colours.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text("Shown with the Per-key colours effect.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         Button("Switch to Per-key colours") {
                             var light = model.light
                             light.mode = LightEffect.perKey.rawValue
@@ -129,7 +128,7 @@ struct Inspector: View {
             }
         }
         ShortcutRecorder { set($0) }
-        Text("F13–F24 make ideal dedicated shortcuts, as they are free in every app. For system shortcuts such as ⌘Tab, set the modifiers and key with the controls above.")
+        Text("F13–F24 are free in every app. For system shortcuts such as ⌘Tab, use the controls above.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }
 
@@ -214,12 +213,11 @@ struct Inspector: View {
         }
         Button("Edit macros…") { model.editingMacros = true }
         if index < model.macros.count && model.macros[index].isEmpty {
-            Text("Macro \(index + 1) is ready for its steps. Press Edit macros to add them.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Add steps with Edit macros.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
-/// A modifier key the user can switch on or off for a keystroke.
 private struct ModifierChip: View {
     let symbol: String
     let name: String

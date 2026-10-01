@@ -1,11 +1,9 @@
 import Foundation
 import IOKit.hid
 
-/// A connected pad's configuration interface (vendor usage page FF00, usage 2, 64-byte reports).
-///
-/// Every frame starts with `06` and a sub-command; the pad answers each one with `AA` and the
-/// same sub-command. A frame must not be sent before the previous answer has been read.
-/// Methods block, so call them off the main thread in a UI.
+// Config interface: usage page FF00, usage 2, 64-byte reports.
+// Frames go out as 06 <cmd> ..., the pad answers AA <cmd> ...
+// Read the answer before sending the next frame.
 public final class Pad {
     public let vendorID: Int
     public let productID: Int
@@ -17,7 +15,6 @@ public final class Pad {
     private let device: IOHIDDevice
     private let inbox: ReportInbox
     private let lock = NSLock()
-    /// The manager that holds the device open; a pad keeps working after its monitor is gone.
     private let owner: OpenedDevices
 
     init(device: IOHIDDevice, inbox: ReportInbox, owner: OpenedDevices) {
@@ -35,15 +32,13 @@ public final class Pad {
 
     // MARK: Transport
 
-    /// Sends `06 <payload…>` and returns the pad's 64-byte answer.
     @discardableResult
     public func request(_ payload: [UInt8], timeout: TimeInterval = 1.5) throws -> [UInt8] {
         try exchange([0x06] + payload, expecting: payload[0] == 0x08 ? 0x07 : payload[0], timeout: timeout)
     }
 
-    /// Sends a raw frame and waits for an `AA <expecting>` answer.
     public func exchange(_ frame: [UInt8], expecting: UInt8, timeout: TimeInterval = 1.5) throws -> [UInt8] {
-        // 5A and 55 FF are the firmware-update entry points; they are never sent from here.
+        // 5A and 55 FF start a firmware update. Not from here.
         guard frame.first != 0x5A, frame.first != 0x55 else { throw PadError.usage("Refusing to send a firmware-update frame") }
         lock.lock(); defer { lock.unlock() }
         inbox.drain()
@@ -68,14 +63,12 @@ public final class Pad {
                        layerCount: Int(d[12]))
     }
 
-    /// Makes one of the stored profiles (0-based) the active one. Each profile has its own key table.
     public func selectProfile(_ profile: Int) throws {
         try request([0xFB, UInt8(profile)])
     }
 
     // MARK: Keys
 
-    /// Reads the active profile's key table: one entry per slot up to the model's `entryCount`.
     public func readKeys(layer: UInt8 = 0) throws -> [KeyEntry] {
         let wanted = model.entryCount * 4
         var bytes: [UInt8] = []
@@ -113,7 +106,6 @@ public final class Pad {
                      colourFlag, 0x00, c.hue, c.saturation, c.value])
     }
 
-    /// Per-key colours, shown by the "per-key" effect (mode 5). Index matches the key table.
     public func readKeyColours() throws -> [RGB] {
         let wanted = model.keyCount * 3
         var bytes: [UInt8] = []
@@ -142,9 +134,9 @@ public final class Pad {
         return table
     }
 
-    /// Writes the bytes of `table` up to the end of the last stored macro, in 56-byte frames.
     public func writeMacroTable(_ table: [UInt8]) throws {
         guard table.count == Macro.tableSize else { throw PadError.usage("A macro table is \(Macro.tableSize) bytes") }
+        // only write as far as the last stored macro
         let used = max(64, (table.lastIndex { $0 != 0 } ?? 0) + 1)
         var offset = 0
         while offset < used {
@@ -154,7 +146,6 @@ public final class Pad {
         }
     }
 
-    /// Reads only as much of the macro table as the stored macros occupy.
     public func readMacros() throws -> [[MacroAction]] {
         var table: [UInt8] = []
         func readFrame() throws {
@@ -178,18 +169,13 @@ public final class Pad {
     public func writeMacros(_ macros: [[MacroAction]]) throws { try writeMacroTable(try Macro.encode(macros)) }
 }
 
-/// Watches USB for pads and reports what is connected.
 public final class PadMonitor {
     public struct Snapshot {
-        /// Pads whose configuration interface is available.
         public var pads: [Pad] = []
-        /// SD pads that are connected but run the factory firmware without a configuration interface.
         public var legacyPads: [String] = []
-        /// A pad is sitting in its firmware bootloader.
         public var bootloaderPresent = false
     }
 
-    /// Called on a background thread whenever a pad is plugged in or removed.
     public var onChange: ((Snapshot) -> Void)?
 
     static let vendorIDs = [0x6D7B, 0x6D7C, 0x6D7D, 0x6D7E, 0x6D7F, 0x6D80, 0x6D81, 0x6D82, 0x6D83]
@@ -203,7 +189,7 @@ public final class PadMonitor {
         config = OpenedDevices(matching: PadMonitor.vendorIDs.map {
             [kIOHIDVendorIDKey: $0, kIOHIDPrimaryUsagePageKey: 0xFF00, kIOHIDPrimaryUsageKey: 2]
         })
-        // Never opened: it only tells us which pads exist, so no keyboard interface is touched.
+        // never opened, so no keyboard interface gets touched
         presence = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
         var matching: [[String: Any]] = PadMonitor.vendorIDs.map { [kIOHIDVendorIDKey: $0] }
         matching.append([kIOHIDVendorIDKey: Bootloader.vendorID, kIOHIDProductIDKey: Bootloader.productID])
@@ -262,7 +248,6 @@ public final class PadMonitor {
         return snap
     }
 
-    /// Waits briefly for USB enumeration, then returns what is connected. For command-line use.
     public func settle(_ seconds: TimeInterval = 0.4) -> Snapshot {
         Thread.sleep(forTimeInterval: seconds)
         return snapshot()

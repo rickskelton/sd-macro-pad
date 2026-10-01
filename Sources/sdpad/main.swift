@@ -2,7 +2,7 @@ import Foundation
 import SDPadKit
 
 let usage = """
-sdpad — configure SDINNOVATION "SIDE-KEYBOARD" macro pads (firmware v105)
+sdpad: configure SDINNOVATION "SIDE-KEYBOARD" macro pads (firmware v105)
 
   sdpad list                              connected pads
   sdpad info                              firmware, profile, lighting

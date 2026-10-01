@@ -1,8 +1,6 @@
 import Foundation
 
-/// HID keyboard usage names, and the conversions the app and CLI need.
 public enum KeyNames {
-    /// Usage → display name, in a sensible picker order.
     public static let all: [(usage: UInt8, name: String)] = {
         var list: [(UInt8, String)] = []
         for (i, c) in "ABCDEFGHIJKLMNOPQRSTUVWXYZ".enumerated() { list.append((UInt8(0x04 + i), String(c))) }
@@ -28,7 +26,6 @@ public enum KeyNames {
         byUsage[usage] ?? String(format: "Key 0x%02X", usage)
     }
 
-    /// Parses a name as the CLI accepts it ("a", "f13", "space", "up", "0x68").
     public static func usage(named raw: String) -> UInt8? {
         let s = raw.lowercased()
         if s.hasPrefix("0x"), let v = UInt8(s.dropFirst(2), radix: 16) { return v }
@@ -43,7 +40,7 @@ public enum KeyNames {
         return all.first { $0.name.lowercased() == s }?.usage
     }
 
-    /// macOS virtual key code (`NSEvent.keyCode`) → HID usage.
+    // NSEvent.keyCode -> HID usage
     public static let usageForMacKeyCode: [UInt16: UInt8] = [
         0: 0x04, 1: 0x16, 2: 0x07, 3: 0x09, 4: 0x0B, 5: 0x0A, 6: 0x1D, 7: 0x1B, 8: 0x06, 9: 0x19,
         10: 0x64, 11: 0x05, 12: 0x14, 13: 0x1A, 14: 0x08, 15: 0x15, 16: 0x1C, 17: 0x17,
@@ -60,8 +57,7 @@ public enum KeyNames {
         125: 0x51, 126: 0x52,
     ]
 
-    /// Character → key position on a US layout, for building text macros.
-    /// The host's keyboard layout decides what a position actually types.
+    // US layout
     public static func stroke(for character: Character) -> (usage: UInt8, shift: Bool)? {
         let plain = "abcdefghijklmnopqrstuvwxyz"
         if let i = plain.firstIndex(of: character) { return (UInt8(0x04 + plain.distance(from: plain.startIndex, to: i)), false) }
@@ -83,7 +79,6 @@ public enum KeyNames {
         return table[character].map { (usage: $0.0, shift: $0.1) }
     }
 
-    /// Parses "cmd+shift+4", "ctrl+a", "f13" into a keystroke entry.
     public static func parseShortcut(_ text: String) -> KeyEntry? {
         var mods: Modifiers = []
         var usage: UInt8 = 0
@@ -103,7 +98,6 @@ public enum KeyNames {
     }
 }
 
-/// Consumer-page (media) usages worth offering by name.
 public enum ConsumerKeys {
     public static let all: [(usage: UInt16, name: String, token: String)] = [
         (0xE9, "Volume up", "volup"), (0xEA, "Volume down", "voldown"), (0xE2, "Mute", "mute"),

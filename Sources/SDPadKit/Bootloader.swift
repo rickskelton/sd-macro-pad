@@ -1,11 +1,8 @@
 import Foundation
 import IOKit.hid
 
-/// The pads' firmware bootloader (USB 5566:0009, "ZXWMicroChip Bootloader").
-///
-/// A pad enters it when the top-left and top-right keys are held while it is plugged in, and
-/// leaves it when it is replugged without keys held. The bootloader occupies flash 0x0000–0x0FFF
-/// and is never written by this code; the application lives at 0x1000–0x7FFF.
+// Bootloader shows up as USB 5566:0009. Hold top-left + top-right while plugging in.
+// It sits at 0x0000-0x0FFF and is never written. The app is 0x1000-0x7FFF.
 public final class Bootloader {
     public static let vendorID = 0x5566
     public static let productID = 0x0009
@@ -17,7 +14,6 @@ public final class Bootloader {
     private var device: IOHIDDevice!
     private var inbox: ReportInbox!
 
-    /// Fails unless exactly one pad is in bootloader mode.
     public init() throws {
         devices = OpenedDevices(matching: [[kIOHIDVendorIDKey: Bootloader.vendorID, kIOHIDProductIDKey: Bootloader.productID]])
         Thread.sleep(forTimeInterval: 0.4)
@@ -49,7 +45,6 @@ public final class Bootloader {
         [UInt8(address >> 8), UInt8(address & 0xFF), UInt8(length >> 8), UInt8(length & 0xFF)]
     }
 
-    /// Reads flash. The whole 32 KB, bootloader included, can be read.
     public func read(address: Int = 0, length: Int = Bootloader.flashSize) throws -> [UInt8] {
         _ = try command([0x55, 0xFF, 0x03, 0x04] + range(address, length))
         var data: [UInt8] = []
@@ -62,8 +57,6 @@ public final class Bootloader {
         return Array(data.prefix(length))
     }
 
-    /// Writes the application area from a full 32 KB image and verifies the bootloader's checksum.
-    /// The pad stays in the bootloader afterwards and must be replugged.
     public func writeApplication(image: [UInt8], progress: ((Double) -> Void)? = nil) throws {
         guard image.count == Bootloader.flashSize else {
             throw PadError.usage("A firmware image is exactly \(Bootloader.flashSize) bytes, this one is \(image.count)")
@@ -72,7 +65,7 @@ public final class Bootloader {
         _ = try command([0x55, 0xFF, 0x02, 0x04] + range(Bootloader.applicationStart, payload.count))
         var offset = 0
         while offset < payload.count {
-            // Data frames are raw and unacknowledged.
+            // raw frames, no ack
             try sendOutputReport(device, Array(payload[offset..<min(offset + 64, payload.count)]))
             Thread.sleep(forTimeInterval: 0.002)
             offset += 64
@@ -88,7 +81,6 @@ public final class Bootloader {
         _ = try command([0x55, 0xFF, 0x05, 0x01, 0x01])
     }
 
-    /// USB vendor and product ID found in an application image's device descriptor.
     public static func deviceID(inImage image: [UInt8]) -> (vendorID: Int, productID: Int)? {
         guard image.count >= applicationStart + 18 else { return nil }
         for i in applicationStart..<(image.count - 18)

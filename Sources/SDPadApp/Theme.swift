@@ -10,7 +10,6 @@ enum Theme {
                                                startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
-/// Small capitalised heading used above groups of controls.
 struct SectionLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -35,8 +34,7 @@ struct Card<Content: View>: View {
     }
 }
 
-/// What each key's LED is doing at a moment in time, mirroring the pad's lighting settings.
-/// An approximation for the picture on screen; the pad runs its own animation.
+// rough on-screen version of what the pad's LEDs are doing
 struct LightPreview {
     let light: LightConfig
     let colours: [RGB]
@@ -50,7 +48,6 @@ struct LightPreview {
         light.singleColour ? light.colour.color : Color(hue: (time * 0.05).truncatingRemainder(dividingBy: 1), saturation: 0.9, brightness: 1)
     }
 
-    /// The colour and strength (0–1) of key `index`'s LED, or nil when it is dark.
     func glow(forKey index: Int) -> (colour: Color, strength: Double)? {
         switch light.effect {
         case .off, .lightOnPress, nil:
@@ -71,7 +68,6 @@ struct LightPreview {
         }
     }
 
-    /// A single colour that stands for the whole pad, for ambient tinting.
     var ambient: Color {
         switch light.effect {
         case .off, .lightOnPress, nil: return Theme.accent
