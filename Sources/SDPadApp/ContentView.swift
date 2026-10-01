@@ -95,7 +95,7 @@ private struct HeaderBar: View {
         if !model.legacyPads.isEmpty {
             Label("\(model.legacyPads.count) pad needs a firmware update", systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .help("\(model.legacyPads.joined(separator: ", ")): the factory firmware cannot be configured. Update it from Tools ▸ Firmware.")
+                .help("\(model.legacyPads.joined(separator: ", ")): update to firmware v105 from Tools ▸ Firmware to unlock every setting.")
         }
     }
 }
@@ -146,8 +146,8 @@ private struct EmptyState: View {
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 Button("Open Firmware Tools") { openWindow(id: "tools") }.controlSize(.large)
             } else if !model.legacyPads.isEmpty {
-                Text("This pad needs a firmware update").font(.system(size: 22, weight: .semibold, design: .rounded))
-                Text("\(model.legacyPads.joined(separator: ", ")) is on the factory firmware, which cannot be configured.\nUpdate it from Tools ▸ Firmware with the v105 image for its model.")
+                Text("Ready for a firmware update").font(.system(size: 22, weight: .semibold, design: .rounded))
+                Text("\(model.legacyPads.joined(separator: ", ")) is on its factory firmware.\nUpdate it to v105 from Tools ▸ Firmware to unlock remapping, lighting and macros.")
                     .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 Button("Open Firmware Tools") { openWindow(id: "tools") }.controlSize(.large)
             } else {

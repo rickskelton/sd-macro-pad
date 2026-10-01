@@ -70,11 +70,11 @@ struct Inspector: View {
                 case .macro: macro
                 case .system: system
                 case .nothing:
-                    Text("This control does nothing.").foregroundStyle(.secondary)
+                    Text("This control is switched off.").foregroundStyle(.secondary)
                 }
 
                 if entry.kind == nil && entry.type != 0 || entry.kind == .padFunction {
-                    Text("The pad holds an action this app does not edit: \(entry.summary). Choosing an action above replaces it.")
+                    Text("The pad holds a custom action here: \(entry.summary). Choose an action above to replace it.")
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -129,7 +129,7 @@ struct Inspector: View {
             }
         }
         ShortcutRecorder { set($0) }
-        Text("F13–F24 are useful for shortcuts that no app uses by default. macOS keeps some shortcuts, such as ⌘Tab, for itself while recording; choose those from the menus instead.")
+        Text("F13–F24 make ideal dedicated shortcuts, as they are free in every app. For system shortcuts such as ⌘Tab, set the modifiers and key with the controls above.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
     }
 
@@ -214,7 +214,7 @@ struct Inspector: View {
         }
         Button("Edit macros…") { model.editingMacros = true }
         if index < model.macros.count && model.macros[index].isEmpty {
-            Text("Macro \(index + 1) is empty, so this control does nothing yet.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Macro \(index + 1) is ready for its steps. Press Edit macros to add them.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 }

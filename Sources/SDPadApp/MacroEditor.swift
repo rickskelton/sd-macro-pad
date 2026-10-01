@@ -54,7 +54,7 @@ struct MacroEditor: View {
     private var steps: some View {
         VStack(alignment: .leading, spacing: 10) {
             if macros[selected].isEmpty {
-                Text("Macro \(selected + 1) has no steps. Add text or a shortcut below.")
+                Text("Add text or a shortcut below to build Macro \(selected + 1).")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -84,7 +84,7 @@ struct MacroEditor: View {
                 Spacer()
                 Button("Clear macro") { macros[selected] = [] }.disabled(macros[selected].isEmpty)
             }
-            Text("Text is typed as US-layout key positions; a different keyboard layout on the Mac changes some symbols.")
+            Text("Text is stored as US-layout key positions. With another layout on the Mac, check symbols such as @ and # after saving.")
                 .font(.callout).foregroundStyle(.secondary)
         }
         .padding(12)

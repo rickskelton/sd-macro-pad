@@ -43,7 +43,7 @@ private struct DiagnosticsTab: View {
                     NSPasteboard.general.setString(report, forType: .string)
                 }
                 Spacer()
-                Text("Reads only; nothing is changed on the pad.").foregroundStyle(.secondary).font(.callout)
+                Text("Read-only: the pad’s settings stay exactly as they are.").foregroundStyle(.secondary).font(.callout)
             }
         }
         .onAppear(perform: refresh)
@@ -65,7 +65,7 @@ extension AppModel {
             if pads.isEmpty { lines.append("No configurable pad connected.") }
             for pad in pads {
                 lines.append("\(pad.model.name)  \"\(pad.productName)\"  " + String(format: "%04X:%04X  location 0x%08X", pad.vendorID, pad.productID, pad.locationID))
-                if !pad.isKnownModel { lines.append("  Layout unknown: shown as 16 keys and 3 dials.") }
+                if !pad.isKnownModel { lines.append("  Shown with the generic 16-key, 3-dial layout.") }
                 do {
                     let info = try pad.info()
                     lines.append("  Firmware v\(info.firmware), protocol \(info.protocolVersion), profile \(info.profile + 1) of \(info.profileCount), layers \(info.layerCount)")
@@ -86,7 +86,7 @@ extension AppModel {
                 }
                 lines.append("")
             }
-            for name in legacy { lines.append("\(name): factory firmware, no configuration interface. Update it from the Firmware tab.") }
+            for name in legacy { lines.append("\(name): factory firmware. Update it to v105 from the Firmware tab to unlock every setting.") }
             if bootloader { lines.append("A pad is in bootloader mode (USB 5566:0009).") }
             let text = lines.joined(separator: "\n")
             DispatchQueue.main.async { completion(text) }
@@ -103,7 +103,7 @@ private struct KeyTestTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Press keys and turn dials while this window is in front. Each event is matched against what the selected pad is set to send. Mouse and macro actions are not listed.")
+            Text("Press keys and turn dials while this window is in front. Each keystroke and media key is matched against what the selected pad is set to send.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             List(Array(events.enumerated()), id: \.offset) { _, line in
@@ -157,7 +157,7 @@ private struct KeyTestTab: View {
                 }
             }
         }
-        let source = matches.isEmpty ? "no control on this pad is set to it" : matches.joined(separator: " or ")
+        let source = matches.isEmpty ? "another keyboard, or another profile" : matches.joined(separator: " or ")
         events.insert(entry.summary.padding(toLength: 18, withPad: " ", startingAt: 0) + "← " + source, at: 0)
         if events.count > 200 { events.removeLast() }
     }
@@ -183,7 +183,7 @@ private struct ConsoleTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Sends one configuration frame to the selected pad: 06 followed by the hex bytes below. The command list is in docs/TECHNICAL_REFERENCE.md. Erase and factory-reset commands (0F) are blocked here.")
+            Text("Sends one configuration frame to the selected pad: 06 followed by the hex bytes below. The command list is in docs/TECHNICAL_REFERENCE.md. Erase and factory-reset commands (0F) are kept out of the console for safety.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             HStack {
@@ -219,7 +219,7 @@ private struct ConsoleTab: View {
             return
         }
         guard bytes[0] != 0x0F else {
-            log.insert("✕  0F commands erase settings and are blocked", at: 0)
+            log.insert("•  0F commands erase settings, so the console leaves them out", at: 0)
             return
         }
         DispatchQueue.global(qos: .userInitiated).async {
@@ -288,11 +288,11 @@ final class FirmwareModel: ObservableObject {
                 if want == nil {
                     concern = "This file has no USB device descriptor where firmware for these pads has one. It may not be a firmware image for them, and flashing it will probably leave the pad dark until a good image is flashed."
                 } else if have == nil {
-                    concern = "The pad’s current firmware cannot be identified, so the app cannot check this image is for the same model."
+                    concern = "The pad’s current firmware is one the app has yet to see, so please confirm this image is for the same model."
                 } else if let have, let want, have != want {
                     concern = String(format: "The pad currently runs firmware for %04X:%04X, but this image is for %04X:%04X (%@). Firmware for another model will not drive this pad’s keys and lights correctly.",
                                      have.vendorID, have.productID, want.vendorID, want.productID,
-                                     PadModel.lookup(vendorID: want.vendorID, productID: want.productID)?.name ?? "unknown model")
+                                     PadModel.lookup(vendorID: want.vendorID, productID: want.productID)?.name ?? "another model")
                 }
                 if let concern {
                     self.pending = (bootloader, image)
@@ -344,11 +344,11 @@ private struct FirmwareTab: View {
                     ForEach(model.pads, id: \.locationID) { pad in
                         Text("\(pad.model.name): running normally" + (pad === model.pad && model.info != nil ? ", firmware v\(model.info!.firmware)" : ""))
                     }
-                    ForEach(model.legacyPads, id: \.self) { Text("\($0): factory firmware, needs v105 to be configurable") }
+                    ForEach(model.legacyPads, id: \.self) { Text("\($0): factory firmware, ready to update to v105") }
                     if model.bootloaderPresent {
                         Label("A pad is in bootloader mode and ready", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     } else {
-                        Text("No pad is in bootloader mode.").foregroundStyle(.secondary)
+                        Text("Put a pad into bootloader mode to begin.").foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
